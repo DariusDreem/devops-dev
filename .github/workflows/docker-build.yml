@@ -12,6 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Build API Docker image
-        run: docker build -t api-image ./devops-dev/back
+        run: docker build -t api-image ./back
       - name: Build Front Docker image
-        run: docker build -t front-image ./devops-dev/front
+        run: docker build -t front-image ./front
