@@ -1,0 +1,54 @@
+name: Deploy to Scaleway
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      SCW_REGISTRY: ${{ secrets.SCW_REGISTRY }}
+      SCW_ORGANIZATION_ID: ${{ secrets.SCW_ORGANIZATION_ID }}
+      SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
+      SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+      SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+      BACK_IMAGE: ${{ secrets.SCW_REGISTRY }}/back:latest
+      FRONT_IMAGE: ${{ secrets.SCW_REGISTRY }}/front:latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Scaleway Container Registry
+        run: echo ${{ secrets.SCW_REGISTRY_PASSWORD }} | docker login ${{ secrets.SCW_REGISTRY }} -u ${{ secrets.SCW_REGISTRY_USER }} --password-stdin
+
+      - name: Build and push backend image
+        run: |
+          docker build -t $BACK_IMAGE ./devops-dev/back
+          docker push $BACK_IMAGE
+
+      - name: Build and push frontend image
+        run: |
+          docker build -t $FRONT_IMAGE ./devops-dev/front
+          docker push $FRONT_IMAGE
+
+      # Déploiement sur Scaleway Serverless Containers (exemple CLI)
+      - name: Install Scaleway CLI
+        run: |
+          curl -sLo scw https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          chmod +x scw
+          sudo mv scw /usr/local/bin/
+
+      - name: Deploy backend container
+        run: |
+          scw config init with-key $SCW_ACCESS_KEY $SCW_SECRET_KEY $SCW_PROJECT_ID $SCW_ORGANIZATION_ID
+          scw container container update <BACK_CONTAINER_ID> image=$BACK_IMAGE
+
+      - name: Deploy frontend container
+        run: |
+          scw container container update <FRONT_CONTAINER_ID> image=$FRONT_IMAGE
+
+# Remplace <BACK_CONTAINER_ID> et <FRONT_CONTAINER_ID> par les IDs de tes containers Scaleway.
+# Ajoute les secrets nécessaires dans les paramètres GitHub (voir README pour la liste complète).
