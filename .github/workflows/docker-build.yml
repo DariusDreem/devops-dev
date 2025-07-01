@@ -33,6 +33,9 @@ jobs:
           push: true
           tags: ${{ env.BACK_IMAGE }}
 
+      - name: Inject VITE_API_URL
+        run: echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > front/.env.production
+
       - name: Build and push Front image
         uses: docker/build-push-action@v5
         with:
