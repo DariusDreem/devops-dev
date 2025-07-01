@@ -1,14 +1,17 @@
-name: Docker Build & Push to Scaleway
+name: Build, Push & Deploy to Scaleway
 
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
-  docker-build-push:
+  build-push-deploy:
     runs-on: ubuntu-latest
+    env:
+      BACK_IMAGE: rg.fr-par.scw.cloud/namespace-reungoat-nathan/my-api:latest
+      FRONT_IMAGE: rg.fr-par.scw.cloud/namespace-reungoat-nathan/my-front:latest
+      # ... autres variables
+
     steps:
       - uses: actions/checkout@v3
 
@@ -28,7 +31,7 @@ jobs:
           context: ./back
           file: ./back/Dockerfile
           push: true
-          tags: rg.fr-par.scw.cloud/namespace-reungoat-nathan/my-api:latest
+          tags: ${{ env.BACK_IMAGE }}
 
       - name: Build and push Front image
         uses: docker/build-push-action@v5
@@ -36,6 +39,22 @@ jobs:
           context: ./front
           file: ./front/Dockerfile
           push: true
-          tags: rg.fr-par.scw.cloud/namespace-reungoat-nathan/my-front:latest
-          build-args: |
-            VITE_API_URL=rg.fr-par.scw.cloud/namespace-reungoat-nathan/my-api:latest
+          tags: ${{ env.FRONT_IMAGE }}
+
+      - name: Set up Scaleway CLI
+        uses: scaleway/action-scw@v0
+        with:
+          access-key: ${{ secrets.SCW_ACCESS_KEY }}
+          secret-key: ${{ secrets.SCW_SECRET_KEY }}
+          default-project-id: ${{ secrets.SCW_PROJECT_ID }}
+          default-organization-id: ${{ secrets.SCW_ORGANIZATION_ID }}
+          save-config: true
+          export-config: true
+
+      - name: Update backend container image
+        run: |
+          scw container container update ${{ secrets.BACK_CONTAINER_ID }} registry-image=$BACK_IMAGE
+
+      - name: Update frontend container image
+        run: |
+          scw container container update ${{ secrets.FRONT_CONTAINER_ID }} registry-image=$FRONT_IMAGE
