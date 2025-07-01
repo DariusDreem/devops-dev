@@ -32,11 +32,11 @@ jobs:
 
       - name: Update backend container image
         run: |
-          scw container container update ${{ secrets.BACK_CONTAINER_ID }} image=$BACK_IMAGE
+          scw container container update ${{ secrets.BACK_CONTAINER_ID }} registry-image=$BACK_IMAGE
 
       - name: Update frontend container image
         run: |
-          scw container container update  ${{ secrets.FRONT_CONTAINER_ID }} image=$FRONT_IMAGE
+          scw container container update ${{ secrets.FRONT_CONTAINER_ID }} registry-image=$FRONT_IMAGE
 
 # Remplace <BACK_CONTAINER_ID> et <FRONT_CONTAINER_ID> par les IDs de tes containers Scaleway.
 # Ajoute les secrets nécessaires dans les paramètres GitHub (voir README pour la liste complète).
