@@ -32,7 +32,6 @@ jobs:
 
       - name: Update backend container image
         run: |
-          scw config init with-key $SCW_ACCESS_KEY $SCW_SECRET_KEY $SCW_PROJECT_ID $SCW_ORGANIZATION_ID
           scw container container update ${{ secrets.BACK_CONTAINER_ID }} image=$BACK_IMAGE
 
       - name: Update frontend container image
