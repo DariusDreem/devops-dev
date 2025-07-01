@@ -25,8 +25,8 @@ jobs:
         with:
           access-key: ${{ secrets.SCW_ACCESS_KEY }}
           secret-key: ${{ secrets.SCW_SECRET_KEY }}
-          default-project-id: ${{ secrets.SCALEWAY_PROJECT_ID }}
-          default-organization-id: ${{ secrets.SCALEWAY_ORG_ID }}
+          default-project-id: ${{ secrets.SCW_PROJECT_ID }}
+          default-organization-id: ${{ secrets.SCW_ORGANIZATION_ID }}
           save-config: true
           export-config: true
 
