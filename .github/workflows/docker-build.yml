@@ -31,15 +31,11 @@ jobs:
 
   deploy-api:
     needs: build-api
+    runs-on: ubuntu-latest
     outputs:
       BACKEND_URL: ${{ steps.backend-url.outputs.BACKEND_URL }}
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
-      - name: Set output BACKEND_URL
-        run: echo "BACKEND_URL=$BACKEND_URL" >> $GITHUB_ENV
-
 
       - name: Set up Scaleway CLI
         uses: scaleway/action-scw@v0
@@ -51,11 +47,37 @@ jobs:
           save-config: true
           export-config: true
 
+      - name: Get or create backend container
+        id: backend-container
+        run: |
+          CONTAINER_ID=$(scw container container list name=container-devops-back namespace-id=${{ secrets.SCALEWAY_NAMESPACE_ID }} --output json | jq -r '.[0].id // empty')
+
+          if [[ "$CONTAINER_ID" == "" || "$CONTAINER_ID" == "null" ]]; then
+            echo "Backend container not found, creating..."
+            CONTAINER_ID=$(scw container container create \
+              name=container-devops-back \
+              namespace-id=${{ secrets.SCALEWAY_NAMESPACE_ID }} \
+              registry-image=${{ secrets.SCW_REGISTRY }} \
+              port=3000 \
+              privacy=public \
+              min-scale=0 \
+              max-scale=1 \
+              memory-limit=256 \
+              cpu-limit=250 \
+              --output json | jq -r '.id')
+          fi
+
+          if [[ -z "$CONTAINER_ID" || "$CONTAINER_ID" == "null" ]]; then
+            echo "Failed to get/create backend container ID"
+            exit 1
+          fi
+
+          echo "CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_OUTPUT
+
       - name: Update backend container & get backend URL
         id: backend-url
         run: |
-          CONTAINER_ID="${{ secrets.BACK_CONTAINER_ID }}"
-
+          CONTAINER_ID=${{ steps.backend-container.outputs.CONTAINER_ID }}
           UPDATE_RESULT=$(scw container container update "$CONTAINER_ID" registry-image=${{ secrets.SCW_REGISTRY }} --output json)
           DOMAIN=$(echo "$UPDATE_RESULT" | jq -r '.domain_name')
           BACKEND_URL="https://$DOMAIN"
@@ -63,10 +85,10 @@ jobs:
 
   build-front:
     needs: deploy-api
+    runs-on: ubuntu-latest
     env:
       FRONT_IMAGE: rg.fr-par.scw.cloud/namespace-reungoat-nathan/my-front:latest
       BACKEND_URL: ${{ needs.deploy-api.outputs.BACKEND_URL }}
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
@@ -109,6 +131,33 @@ jobs:
           save-config: true
           export-config: true
 
+      - name: Get or create frontend container
+        id: frontend-container
+        run: |
+          CONTAINER_ID=$(scw container container list name=container-devops-front namespace-id=${{ secrets.SCALEWAY_NAMESPACE_ID }} --output json | jq -r '.[0].id // empty')
+
+          if [[ "$CONTAINER_ID" == "" || "$CONTAINER_ID" == "null" ]]; then
+            echo "Frontend container not found, creating..."
+            CONTAINER_ID=$(scw container container create \
+              name=container-devops-front \
+              namespace-id=${{ secrets.SCALEWAY_NAMESPACE_ID }} \
+              registry-image=${{ env.FRONT_IMAGE }} \
+              port=80 \
+              privacy=public \
+              min-scale=0 \
+              max-scale=1 \
+              memory-limit=256 \
+              cpu-limit=250 \
+              --output json | jq -r '.id')
+          fi
+
+          if [[ -z "$CONTAINER_ID" || "$CONTAINER_ID" == "null" ]]; then
+            echo "Failed to get/create frontend container ID"
+            exit 1
+          fi
+
+          echo "CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_OUTPUT
+
       - name: Update frontend container image
         run: |
-          scw container container update ${{ secrets.FRONT_CONTAINER_ID }} registry-image=${{ env.FRONT_IMAGE }}
+          scw container container update ${{ steps.frontend-container.outputs.CONTAINER_ID }} registry-image=${{ env.FRONT_IMAGE }}
