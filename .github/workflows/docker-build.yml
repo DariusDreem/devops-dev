@@ -50,7 +50,7 @@ jobs:
         run: |
           CONTAINER_ID="${{ secrets.BACK_CONTAINER_ID }}"
 
-          UPDATE_RESULT=$(scw container container update "$CONTAINER_ID" registry-image=${{ secrets.SCW_REGISTRY }}/my-back:latest --output json)
+          UPDATE_RESULT=$(scw container container update "$CONTAINER_ID" registry-image=${{ secrets.SCW_REGISTRY }} --output json)
           DOMAIN=$(echo "$UPDATE_RESULT" | jq -r '.domain_name')
           BACKEND_URL="https://$DOMAIN"
           echo "BACKEND_URL=$BACKEND_URL" >> $GITHUB_OUTPUT
