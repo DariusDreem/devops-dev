@@ -8,8 +8,6 @@ jobs:
 
   build-api:
     runs-on: ubuntu-latest
-    env:
-      BACK_IMAGE: rg.fr-par.scw.cloud/namespace-reungoat-nathan/my-api:latest
     steps:
       - uses: actions/checkout@v3
 
@@ -34,8 +32,6 @@ jobs:
   deploy-api:
     needs: build-api
     runs-on: ubuntu-latest
-    env:
-      BACK_IMAGE: rg.fr-par.scw.cloud/namespace-reungoat-nathan/my-api:latest
     steps:
       - uses: actions/checkout@v3
 
